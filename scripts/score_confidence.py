@@ -10,13 +10,13 @@ SOURCE_SCORES = {"A1": 25, "P1": 25, "A2": 20, "B": 12, "C": 5}
 def score(item):
     tier = item.get("source_tier")
     source_score = SOURCE_SCORES.get(tier, 0)
-    locator_score = 25 if item.get("exact_locator") and item.get("current_version") else 15 if item.get("url") else 5 if item.get("summary_only") else 0
+    locator_score = 25 if item.get("exact_locator") and item.get("effective_at_claim_time") else 15 if item.get("url") else 5 if item.get("summary_only") else 0
     cross_score = 25 if item.get("independent_crosscheck") else 15 if item.get("raw_material") else 5 if item.get("model_extraction_only") else 0
     verify_score = 25 if item.get("human_verified") and item.get("reproducible_formula") else 15 if item.get("human_verified") or item.get("reproducible_formula") else 5 if item.get("model_extraction_only") else 0
     total = source_score + locator_score + cross_score + verify_score
     claim_type = item.get("claim_type", "interpretive")
     gates = {
-        "normative": bool(tier == "A1" and item.get("current_version") and item.get("exact_locator")),
+        "normative": bool(tier == "A1" and item.get("effective_at_claim_time") and item.get("exact_locator")),
         "observed": bool(item.get("raw_material") and item.get("human_verified")),
         "computed": bool(item.get("complete_inputs") and item.get("reproducible_formula")),
         "interpretive": bool(item.get("source_ids") and item.get("premises")),
@@ -69,4 +69,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 

@@ -22,7 +22,7 @@
 
 ## source（来源）
 
-`source_id`、`title`、`publisher`、`document_no_or_version`、`published_at`、`accessed_at`、`url`、`locator`（页/章/条款/段落）、`verbatim_excerpt`、`source_tier`、`local_copy_path`、`archived_at`。
+`source_id`、`title`、`publisher`、`document_no_or_version`、`published_at`、`effective_from`、`effective_to`、`accessed_at`、`url`、`locator`（页/章/条款/段落）、`verbatim_excerpt`、`source_tier`、`local_copy_path`、`archived_at`。对规范性主张另存 `is_effective_at_claim_time`，不要用“已发布”代替“已生效”。
 
 `source_tier` 建议：
 
@@ -61,6 +61,7 @@
   "checked_at": "2026-10-30"
 }
 ```
+
 
 
 
