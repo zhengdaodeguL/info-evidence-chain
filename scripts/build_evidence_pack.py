@@ -5,6 +5,7 @@ import hashlib
 import html
 import json
 import shutil
+import sys
 from collections import Counter
 from pathlib import Path
 from urllib.parse import quote, urlsplit
@@ -40,6 +41,9 @@ def copy_asset(value, base, output, folder):
 
 def build(manifest_path, output):
     payload = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+    for key in ("conclusions", "limitations"):
+        if key in payload and (not isinstance(payload[key], list) or any(not isinstance(value, str) for value in payload[key])):
+            raise ValueError(f"{key} must be an array of strings")
     entries = payload.get("evidence", [])
     if not isinstance(entries, list) or not entries:
         raise ValueError("manifest.evidence must be a nonempty array")
@@ -95,18 +99,34 @@ def build(manifest_path, output):
     (output / "manifest.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     log = payload.get("search_log", [])
     log_table = ''.join(f'<tr><td>{escape(row.get("at"))}</td><td>{escape(row.get("action"))}</td><td>{escape(row.get("query"))}</td><td>{escape(row.get("outcome"))}</td></tr>' for row in log)
+    overview = ''
+    for key, label in (("conclusions", "本次结论"), ("limitations", "适用范围与限制")):
+        if payload.get(key):
+            overview += f'<h2>{label}</h2><ul>' + ''.join(f'<li>{escape(value)}</li>' for value in payload[key]) + '</ul>'
+    pending = [entry for entry in entries if entry.get("verification_status", "unverified") in {"needs_review", "blocked", "unverified"}]
+    overview += '<h2>待处理条目</h2>'
+    if pending:
+        overview += '<ul>' + ''.join(f'<li><strong>{escape(entry["evidence_id"])}</strong> {escape(entry.get("title"))}：{escape(entry.get("review_reason", "尚未完成核验"))}</li>' for entry in pending) + '</ul>'
+    else:
+        overview += '<p>当前记录没有待处理条目；这不表示已覆盖全部研究问题。</p>'
+    if overview:
+        overview = '<section class="intro">' + overview + '</section>'
     document = '''<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>__TITLE__</title><style>
 :root{--blue:#1F5AA6;--ink:#1F2937;--muted:#6B7280;--bg:#F3F4F6;--green:#177245;--amber:#A15C00;--red:#A33A3A}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.7 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:auto;padding:40px 24px}h1{font-size:32px;line-height:1.3;margin:8px 0 16px}h2{font-size:22px}a{color:var(--blue);text-underline-offset:3px}input{width:100%;padding:14px;border:1px solid #bac5d2;border-radius:8px;font:inherit;margin:20px 0}nav{display:flex;flex-wrap:wrap;gap:16px;padding:12px 0}header{display:flex;gap:12px;align-items:center}.card,.intro{background:white;border:1px solid #dce2ea;padding:24px;border-radius:12px;margin-bottom:24px;overflow-wrap:anywhere}.id{font-family:monospace;color:var(--blue);font-weight:bold}.status{font-size:14px;padding:2px 10px;border-radius:20px;background:#eef1f5}.auto_verified,.human_verified{color:var(--green);background:#eaf5ee}.needs_review{color:var(--amber);background:#fff4de}.blocked{color:var(--red);background:#fbeeed}dl{display:grid;grid-template-columns:96px 1fr;gap:6px 16px}dt{color:var(--muted)}dd{margin:0}blockquote{margin:16px 0;border-left:4px solid var(--blue);padding:10px 16px;background:#f5f8fc;white-space:pre-wrap}.image-link{display:block}img{display:block;max-width:100%;height:auto;border:1px solid #e4e8ed}summary{cursor:pointer;color:var(--blue);padding-top:8px}pre{font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere}table{border-collapse:collapse;width:100%;font-size:14px}th,td{padding:10px;text-align:left;border-bottom:1px solid #dde3eb;vertical-align:top}.table-wrap{overflow:auto}.muted{color:var(--muted)}@media(max-width:600px){main{padding:20px 12px}.card,.intro{padding:18px}h1{font-size:26px}dl{grid-template-columns:1fr;gap:2px}dd{margin-bottom:10px}}
 </style><main><section class="intro"><div class="muted">信息证据链 · 本地证据包</div><h1>__TITLE__</h1><p>__SCOPE__</p><p>__COUNTS__</p><p>先看原文和标注，再看核验记录。auto_verified 表示自动核验通过；不表示人工已审阅。</p><a href="manifest.json">下载完整证据清单 JSON</a></section><label for="filter">按检索式、来源、关键点或状态筛选</label><input id="filter" type="search" placeholder="输入 GB 28050、needs_review 等"><div id="cards">__CARDS__</div><section class="card"><h2>检索动作记录</h2><div class="table-wrap"><table><thead><tr><th>时间</th><th>动作</th><th>检索式</th><th>结果</th></tr></thead><tbody>__LOG__</tbody></table></div></section></main><script>document.getElementById('filter').addEventListener('input',function(){const q=this.value.toLocaleLowerCase();document.querySelectorAll('article.card').forEach(card=>{card.hidden=!card.dataset.search.toLocaleLowerCase().includes(q)})})</script></html>'''
-    values = {"__TITLE__": escape(payload.get("title", "浏览器检索证据")), "__SCOPE__": escape(payload.get("scope", "")), "__COUNTS__": escape(' · '.join(f'{key}: {count}' for key, count in counts.items())), "__CARDS__": '\n'.join(cards), "__LOG__": log_table}
+    document = document.replace('<label for="filter">', '__OVERVIEW__<label for="filter">')
+    values = {"__TITLE__": escape(payload.get("title", "浏览器检索证据")), "__SCOPE__": escape(payload.get("scope", "")), "__COUNTS__": escape(' · '.join(f'{key}: {count}' for key, count in counts.items())), "__CARDS__": '\n'.join(cards), "__LOG__": log_table, "__OVERVIEW__": overview}
     # One pass avoids interpreting replacement tokens embedded in evidence text.
     import re
-    document = re.sub(r'__(?:TITLE|SCOPE|COUNTS|CARDS|LOG)__', lambda match: values[match.group()], document)
+    document = re.sub(r'__(?:TITLE|SCOPE|COUNTS|CARDS|LOG|OVERVIEW)__', lambda match: values[match.group()], document)
     (output / "index.html").write_text(document, encoding="utf-8")
     return {"index_path": str((output / "index.html").resolve()), "manifest_path": str((output / "manifest.json").resolve()), "counts": dict(counts)}
 
 
 def main():
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description="从真实截图和 manifest 生成离线证据索引；不替代核验")
     parser.add_argument("--manifest", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path, help="新的或空的输出目录")

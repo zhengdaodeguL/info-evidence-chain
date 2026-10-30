@@ -166,6 +166,9 @@ def annotate(image_path: Path, annotations_path: Path, output_path: Path,
 
 
 def main() -> int:
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--image", required=True, type=Path)
     parser.add_argument("--annotations", required=True, type=Path)

@@ -48,6 +48,8 @@
 
 `manifest.json` 顶层包含 `title`、`scope`、`search_log` 和 `evidence`。`search_log` 是真实动作数组，每项记录 `at`、`action`、`query`、`outcome`，可以增加站点、筛选条件、翻页范围与阻塞原因。
 
+可选 `conclusions` 与 `limitations` 均为字符串数组，在索引顶部显示本次结论和限制。待处理队列由各条 `verification_status` 与 `review_reason` 汇总，避免用户逐张寻找异常。
+
 `evidence` 每项包含：
 
 | 字段 | 用途 |

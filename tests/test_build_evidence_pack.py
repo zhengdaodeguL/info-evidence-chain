@@ -129,6 +129,24 @@ class BuildEvidencePackTests(unittest.TestCase):
             PACK.build(self.manifest, self.output)
         self.assertFalse(self.output.exists(), "Invalid input must not leave a non-retryable partial pack")
 
+    def test_reader_can_find_conclusion_limits_and_pending_work(self):
+        self.entry.update(verification_status="needs_review", review_reason="缺少实施日期原文")
+        self.write_manifest(conclusions=["页面列出该标准 <不等于已生效>"], limitations=["不能由查无推定不存在"])
+        PACK.build(self.manifest, self.output)
+        rendered = (self.output / "index.html").read_text(encoding="utf-8")
+        overview = rendered.split('<label for="filter">')[0]
+        self.assertIn("缺少实施日期原文", overview)
+        self.assertIn("不能由查无推定不存在", overview)
+        self.assertIn("&lt;不等于已生效&gt;", overview)
+        packed = json.loads((self.output / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(packed["summary"], {"needs_review": 1})
+
+    def test_bad_conclusions_shape_does_not_leave_partial_output(self):
+        self.write_manifest(conclusions="should be a list")
+        with self.assertRaisesRegex(ValueError, "array of strings"):
+            PACK.build(self.manifest, self.output)
+        self.assertFalse(self.output.exists())
+
 
 if __name__ == "__main__":
     unittest.main()
