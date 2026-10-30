@@ -1,7 +1,7 @@
 interface:
   display_name: "信息证据链"
-  short_description: "检索、核验、结构化与可解释置信度"
+  short_description: "浏览器代检索、截图标注、证据归档与自动核验"
   brand_color: "#1F5AA6"
-  default_prompt: "使用 $info-evidence-chain，把这个研究问题整理成可追溯证据链并给出可解释置信度。"
+  default_prompt: "使用 $info-evidence-chain，自动检索这个问题；需要时替我在网站输入检索式，截图标注关键点，自动核验并仅列出异常，生成可点击打开的本地证据包和可解释置信度。"
 policy:
   allow_implicit_invocation: true
