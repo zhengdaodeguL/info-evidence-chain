@@ -33,7 +33,8 @@ info-evidence-chain/
 
 ```text
 python scripts/score_confidence.py --help
-python C:\Users\11599\.codex\skills\.system\skill-creator\scripts\quick_validate.py C:\Users\11599\.codex\skills\info-evidence-chain
+python <skill-creator>/scripts/quick_validate.py <path-to-skill>
 ```
 
 再用一个包含规范性、OCR 和计算三类记录的临时 JSON 验证分数、硬闸门和输出字段。不要用测试通过替代原文核对。
+
