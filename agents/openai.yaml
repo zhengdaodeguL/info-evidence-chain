@@ -1,0 +1,7 @@
+interface:
+  display_name: "信息证据链"
+  short_description: "检索、核验、结构化与可解释置信度"
+  brand_color: "#1F5AA6"
+  default_prompt: "使用 $info-evidence-chain，把这个研究问题整理成可追溯证据链并给出可解释置信度。"
+policy:
+  allow_implicit_invocation: true
