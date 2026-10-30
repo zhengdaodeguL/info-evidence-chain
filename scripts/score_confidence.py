@@ -5,7 +5,7 @@ import json
 import sys
 from pathlib import Path
 
-SOURCE_SCORES = {"A1": 25, "A2": 20, "B": 12, "C": 5}
+SOURCE_SCORES = {"A1": 25, "P1": 25, "A2": 20, "B": 12, "C": 5}
 
 def score(item):
     tier = item.get("source_tier")
@@ -16,7 +16,7 @@ def score(item):
     total = source_score + locator_score + cross_score + verify_score
     claim_type = item.get("claim_type", "interpretive")
     gates = {
-        "normative": bool(tier in {"A1", "A2"} and item.get("current_version") and item.get("exact_locator")),
+        "normative": bool(tier == "A1" and item.get("current_version") and item.get("exact_locator")),
         "observed": bool(item.get("raw_material") and item.get("human_verified")),
         "computed": bool(item.get("complete_inputs") and item.get("reproducible_formula")),
         "interpretive": bool(item.get("source_ids") and item.get("premises")),
@@ -69,3 +69,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
